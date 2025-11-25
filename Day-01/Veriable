@@ -1,0 +1,605 @@
+- name: this is veriable playbook
+  hosts: all
+  vars:
+    mydir: /tmp/raj
+    myfile: /etc/passwd
+    mypkg:
+    - httpd
+    - telnet
+    - vsftpd
+
+  tasks:
+    - name: file coping to target system.
+      copy:
+        src: "{{ mydir }}"
+        dest: "{{ myfile }}"
+
+
+#########################################################################
+import veriable file
+
+- name: this is veriable playbook
+  hosts: all
+  vars_files:
+    - /root/vars.yml
+  tasks:
+    - name: file coping to target system.
+      copy:
+        src: "{{ mydir }}"
+        dest: "{{ myfile }}"
+
+  tasks:
+    - name: "installing packages {{ mypkg }} done"
+      yum:
+        name: "{{ mypkg }}"
+        state: installed
+
+
+vi vars.yml
+mydir: /tmp/raj
+myfile: /etc/passwd
+mypkg:
+ - httpd
+ - telnet
+ - vsftpd
+
+##########################################################################################
+
+veriable define while running the playbook
+
+ansible-playbook veritas1.yml -e mydir=/tmp/raj -e myfile=/etc/passwd -e mypkg=httpd,telnet,vsftpd
+
+- name: this is veriable playbook
+  hosts: all
+  tasks:
+    - name: file coping to target system.
+      copy:
+        src: "{{ mydir }}"
+        dest: "{{ myfile }}"
+
+  tasks:
+    - name: "installing packages {{ mypkg }} done"
+      yum:
+        name: "{{ mypkg }}"
+        state: installed
+
+
+##########################################################################################
+
+veriable defined from playbook
+vi /etc/ansible/hosts
+
+[dev]
+servera dest=/opt/ram myfile=/etc/passwd
+[test]
+serverb dest=/opt/ram myfile=/etc/passwd
+
+[dev:vars]
+dest=/opt/ram
+myfile=/etc/passwd
+
+[test:vars]
+dest=/opt/ram
+myfile=/etc/passwd
+
+#########################################################################################
+
+playbook run with password
+remove ssh key
+
+ansible-playbook sample.yml -u root -k
+
+if you dont want to set -u and -k then you need modify ansible.cfg file
+
+remove comment
+#ask_pass      = True
+#remote_user = root
+
+if you dont want to define here then go to inventory file
+[web]
+servera ansible_ssh_user=root ansible_ssh_pass=redhat
+[dev]
+servera ansible_ssh_user=root ansible_ssh_pass=redhat
+
+if you want to defined in group
+[dev:vars]
+dest=/opt/ram
+myfile=/etc/passwd
+ansible_ssh_user=root
+ansible_ssh_pass=redhat
+
+###############################################################################################
+
+simple loop
+
+simple loop.
+
+- hosts: all
+  tasks:
+   - copy:
+       src: "{{ item }}"
+       dest: /tmp/
+     with_items:
+       - /etc/passwd
+       - /etc/shadow
+       - /etc/group
+       - /etc/fstab
+
+   - file:
+       path: "{{ item }}"
+       state: directory
+     with_items:
+       - /tmp/rahul
+       - /tmp/ram
+       - /tmp/rajesh
+       - /tmp/kiran
+
+   - copy:
+       src: /etc/passwd
+       dest: "{{ item }}"
+     with_items:
+       - /tmp/rahul
+       - /tmp/ram
+       - /tmp/rajesh
+       - /tmp/kiran
+
+#################################################################################
+
+[root@ansible-controller ~]# cat loop1.yml
+- hosts: web
+  vars:
+    dir:
+     - /tmp/samode
+     - /tmp/dapur
+     - /tmp/shenpur
+    file:
+     - /etc/passwd
+     - /etc/group
+     - /etc/shadow
+
+  tasks:
+    - copy:
+        src: "{{ item }}"
+        dest: /var/tmp/
+      with_items: "{{ file }}"
+    - file:
+        path: "{{ item  }}"
+        dest: /var/tmp/
+      with_items: "{{ dir }}"
+    - copy:
+        src: /etc/passwd
+        dest: "{{ item }}"
+      with_items: "{{ dir }}"
+[root@ansible-controller ~]#
+
+#################################################################################
+
+---
+- hosts: all
+  vars:
+    myfile: /etc/passwd
+    mydir:
+      - /opt/patch1
+      - /var/tmp/patch2  
+  tasks:
+    - name: to create directories
+      file:
+        path: "{{item}}"
+        state: directory
+      with_items:
+        - /opt/patch1
+        - /var/tmp/patch2
+    - name: to copy the file in /opt/ and /var/tmp
+      copy:
+        src: /etc/passwd
+        dest: "{{item}}"
+      with_items:
+        - "{{myfile}}"
+        - "{{mydir}}"
+
+################################################################################
+
+---
+- hosts: all
+  vars:
+    myfile: /etc/passwd
+    mydir:
+      - /opt/patch1
+      - /var/tmp/patch2
+  tasks:
+    - name: to create directories
+      file:
+        path: "{{item}}"
+        state: directory
+      with_items:
+        - /opt/patch1
+        - /var/tmp/patch2
+    - name: to copy the file in /opt/ and /var/tmp
+      copy:
+        src: "{{item[0]}}"
+        dest: "{{item[1]}}"
+      with_nested:
+        - ['/etc/passwd','/etc/shadow','/etc/group','/etc/fstab']
+        - ['/opt','/var/tmp','/tmp']
+
+
+######################################################################################
+
+nested loop
+
+[root@ansible-controller ~]# cat nested.yml
+- hosts: all
+  vars:
+   myfiles:
+     - /etc/passwd
+     - /etc/group
+     - /etc/shadow
+   mydir:
+     - /tmp
+     - /opt
+  tasks:
+   - copy:
+       src: "{{ item[0] }}"
+       dest: "{{ item[1] }}"
+     with_nested:
+       - "{{ myfiles }}"
+       - "{{ mydir }}"
+[root@ansible-controller ~]# cat nested1.yml
+- hosts: all
+  vars:
+   myfiles:
+     - /etc/passwd
+     - /etc/group
+     - /etc/shadow
+
+  tasks:
+   - copy:
+       src: "{{ myfiles[0] }}"
+       dest: "{{ item[1] }}"
+     with_nested:
+       - /tmp/
+       - /opt/
+[root@ansible-controller ~]#
+
+[root@ansible-controller ~]# cat  nest.yml
+- hosts: all
+  vars:
+   myfile:
+    - /etc/passwd
+    - /etc/shadow
+    - /etc/group
+   mydir:
+    - /tmp/
+    - /opt/
+
+  tasks:
+    - copy:
+        src: "{{ item[0] }}"
+        dest: "{{ item[1] }}"
+      with_nested:
+        - "{{ myfile }}"
+        - "{{ mydir }}"
+
+
+
+
+###########################################################################################
+
+
+hash loop
+
+[root@ansible-controller ~]# cat xyz.yml
+- hosts: all
+  tasks:
+    - copy:
+        src: "{{ item.a }}"
+        dest: "{{ item.b }}"
+      with_items:
+        - { a: '/etc/passwd', b: '/tmp' }
+        - { a: '/etc/shadow', b: '/opt' }
+        - { a: '/etc/shadow', b: '/mnt' }
+[root@ansible-controller ~]#
+
+###########################################################################################
+
+[root@ansible-controller ~]# cat user.yml
+- hosts: all
+  tasks:
+    - user:
+        name: "{{ item.a }}"
+        state: present
+        groups: "{{ item.b }}"
+      with_items:
+        - { a: 'harry', b: 'dev-grp' }
+        - { a: 'natasha', b: 'prod-grp' }
+        - { a: 'ram', b: 'test-grp' }
+[root@ansible-controller ~]#
+
+
+####################################################################################################
+
+
+#################################################################################################
+facts
+To gather all the info from remote node 
+ansible all -m setup
+ansible all -m setup --tree /tmp/facts --> it will collect the facts on this location.
+ansible all -m setup -a 'filter=putveriable'
+ansible all -m setup -a filter="ansible_mounts" |grep -i mount
+
+== (operator)
+!= (not equle to operator)
+> = less than
+and condition
+or operator
+
+
+#######################################################################################
+
+=================================================================================================
+
+== (operator)
+[root@ansible-controller ansible]# cat condi.yml
+- hosts: all
+  tasks:
+    - yum:
+       name: httpd
+       state: installed
+      when: ansible_os_family == "RedHat"
+      when: ansible_distribution_major_version == "7"
+[root@ansible-controller ansible]#
+
+==================================================================================================
+!= (not equle to operator)
+[root@ansible-controller ansible]# cat condi.yml
+- hosts: all
+  tasks:
+    - yum:
+       name: httpd
+       state: installed
+      when: ansible_os_family == "RedHat"
+      when: ansible_distribution_major_version != "6"
+[root@ansible-controller ansible]#
+==================================================================================================
+> = less than (it will work if mejor version is above 5
+
+- hosts: all
+  tasks:
+    - yum:
+       name: httpd
+       state: installed
+      when: ansible_os_family == "RedHat"
+      when: ansible_distribution_major_version > "5"
+==================================================================================================
+and condition
+- hosts: all
+  tasks:
+    - yum:
+       name: httpd
+       state: installed
+      when: ansible_distribution_major_version == "7" and ansible_os_family == "RedHat"
+
+===================================================================================================
+or operator
+- hosts: all
+  tasks:
+    - yum:
+       name: httpd
+       state: installed
+      when: ansible_distribution_major_version == "8" or ansible_os_family == "RedHat"
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+[root@ansible-controller ~]# cat debug.yml
+- hosts: all
+  tasks:
+    - command: systemctl is-active sshd
+      register: report
+    - debug: var=report
+    - service:
+         name: httpd
+         state: started
+      when: report.rc == 0
+
+
+#####################################################################################################
+handler
+[root@ansible-controller ~]# cat hand.yml
+- hosts: all
+  tasks:
+    - lineinfile:
+        path: /etc/ssh/sshd_config
+        line: DenyUsers rahul
+      notify: modified
+  handlers:
+    - name: modified
+      service:
+         name: sshd
+         state: restarted
+[root@ansible-controller ~]#
+
+###########################################################################################################
+[root@ansible-controller ~]# cat hand.yml
+- hosts: all
+  tasks:
+    - lineinfile:
+        path: /etc/ssh/sshd_config
+        line: DenyUsers rahul
+      notify:
+        - modified
+        - restart
+    - copy:
+        src: /etc/passwd
+        dest: /tmp
+  handlers:
+    - name: modified
+      service:
+         name: sshd
+         state: restarted
+    - name: restart
+      yum:
+        name: httpd
+        state: absent
+
+[root@ansible-controller ~]#
+
+##############################################################
+tag
+- hosts: all
+  tasks:
+    - copy:
+        src: /etc/passwd
+        dest: /tmp
+      tags: dev-team
+    - file:
+        path: /tmp/ram
+        state: directory
+      tags: prod-team
+    - yum:
+        name: httpd
+        state: absent
+      tags: team
+
+ansible-playbook tag.yml --tags=team
+ansible-playbook tag.yml --skip-tags=team
+##############################################################
+
+[root@ansible-controller ~]# cat ignore.yml
+- hosts: all
+  tasks:
+    - copy:
+        src: /etc/passwd
+        dest: /tmp
+    - file:
+        path: /tmp/cloudnkowledge
+        state: directory
+    - yum:
+        name: sammm
+        state: installed
+      ignore_errors: yes
+    - service:
+        name: httpd
+        state: stopped
+      ignore_errors: yes
+[root@ansible-controller ~]#
+
+################################################################################
+block / rescue /always
+[root@ansible-controller ~]# cat res.yml
+- hosts: all
+  tasks:
+    - block:
+       - lineinfile:
+           path: /tmp/rahul.txt
+           line: "hello india"
+      rescue:
+        - file:
+            path: /tmp/rahul.txt
+            state: touch
+        - lineinfile:
+            path: /tmp/rahul.txt
+            line: "hello india"
+      always:
+        - yum:
+            name: httpd
+            state: installed
+[root@ansible-controller ~]#
+
+###############################################
+ansible-vault encrypt /etc/ansible/hosts
+ansible-vault decrypt /etc/ansible/hosts
+ansible-vault view /etc/ansible/hosts
+ansible-vault edit /etc/ansible/hosts
+ansible-playbook res.yml --ask-vault-pass
+ansible-vault rekey /etc/ansible/hosts
+
+
+###############################################
+role
+default role - /etc/ansible/role
+conf file /etc/ansible/ansible.cfg
+
+create role
+ansible_galaxy init rolename
+
+#####################################################
+AWS
+Ansible
+python
+boto3 is pkg very essential to configure the aws from ansible. 
+access key /secreate key
+
+to prepare the server for aws (internet should be accessible)
+yum makecache
+yum install epel-release
+yum install python-pip
+pip -V
+pip install boto
+pip install --upgrade pip
+
+_________________________________
+
+Create playbook for ec2 instance
+yum install python python-pip python-setuptools*
+curl -O https://bootstrap.pypa.io/get-pip.py​
+python get-pip.py
+pip install boto
+pip install boto3
+
+python --version
+pip --version
+
+to create ec2 instance in aws
+- hosts: local
+  tasks:
+     - ec2:
+         aws_access_key : 
+         aws_secret_key : 
+         key_name: ansible
+         instance_type: t2.small
+         image: ami-09478f130aea32cae
+         wait: yes
+         group: ansible
+         count: 1
+         region: ap-south-1
+         vpc_subnet_id: subnet-87fd1dec
+         assign_public_ip: yes
+
+to stop the ec2 instance
+- hosts: local
+  tasks:
+     - ec2:
+         aws_access_key : 
+         aws_secret_key : 
+         key_name: ansible
+         instance_id: i-0a18b57ab1920d513
+         region: ap-south-1
+         state: stopped
+         vpc_subnet_id: subnet-87fd1dec
+
+to start the ec2 instance
+- hosts: local
+  tasks:
+     - ec2:
+         aws_access_key : 
+         aws_secret_key : 
+         key_name: ansible
+         instance_id: i-0a18b57ab1920d513
+         region: ap-south-1
+         state: running
+         vpc_subnet_id: subnet-87fd1dec
+
+to terminate the aws instance
+- hosts: local
+  tasks:
+     - ec2:
+         aws_access_key : 
+         aws_secret_key : 
+         key_name: ansible
+         instance_id: i-0a18b57ab1920d513
+         region: ap-south-1
+         state: absent
+         vpc_subnet_id: subnet-87fd1dec
+
+
