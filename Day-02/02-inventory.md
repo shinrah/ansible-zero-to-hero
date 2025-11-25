@@ -92,3 +92,42 @@ if __name__ == '__main__':
 ```
 ansible-playbook -i inventory <Adhoc command or Playbook.yml>
 ```
+
+############################################################################################################
+yum install python3-pip
+pip3 install boto3 botocore
+
+
+create dynamic inventory
+do first - aws configure
+create inventory
+----------------------------------
+cat /root/inventory/aws_ec2.yaml
+plugin: aws_ec2
+regions:
+  - ap-south-1
+
+filters:
+  instance-state-name:
+    - running
+
+hostnames:
+  - private-ip-address
+
+compose:
+  ansible_host: private_ip_address
+
+keyed_groups:
+  - key: tags.Name
+    prefix: name_
+  - key: tags.Role
+    prefix: role_
+    ------------------------------------
+    update ansible.cfg #below lines
+    [defaults]
+    inventory = /root/inventory/aws_ec2.yaml
+    host_key_checking = False
+
+    [inventory]
+    enable_plugins = aws_ec2, host_list, yaml
+------------------------------------
