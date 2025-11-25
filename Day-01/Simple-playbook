@@ -1,0 +1,32 @@
+- name: website hosting project
+- hosts: all
+  tasks:
+    - name: install httpd
+      yum:
+        name: httpd
+        state: latest
+
+    - name: start httpd service
+      service:
+        name: httpd
+        state: started
+
+    - name: copy the source code    
+      copy:
+        src: /root/code/
+        remote_src: yes
+        dest: /var/www/html
+
+    - name: modify the file 
+      lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^Listen '
+        insertafter: '^#Listen '
+        line: Listen 8080
+    - firewalld:
+        port: 8080/tcp
+        permanent: yes
+        state: enabled
+    - service:
+        name: httpd
+        state: restarted
