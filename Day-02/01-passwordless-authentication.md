@@ -19,3 +19,10 @@ ssh-copy-id -f "-o IdentityFile <PATH TO PEM FILE>" ubuntu@<INSTANCE-PUBLIC-IP>
 - Update `PasswordAuthentication yes`
 - Restart SSH -> `sudo systemctl restart ssh`
 
+############login to control system####################################################################
+1. ssh-keygen -t ed25519 -C "raholnew@gmail.com"
+2. open file - cat /root/.ssh/id_ed25519.pub
+3. copy this line - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMl1UGrSmP3AfmRfKcqKXFhnmwbRI7PvHCbV7rzLlC9r raholnew@gmail.com
+4. login to remote server. cd .ssh and pest this to authorized_keys
+#################################################################m###############################
+
