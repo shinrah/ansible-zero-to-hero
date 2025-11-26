@@ -103,6 +103,7 @@ do first - aws configure
 create inventory
 ----------------------------------
 cat /root/inventory/aws_ec2.yaml
+
 plugin: aws_ec2
 regions:
   - ap-south-1
