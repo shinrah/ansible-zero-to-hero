@@ -30,3 +30,39 @@
     - service:
         name: httpd
         state: restarted
+
+
+#######################################################################################################################
+
+- name: generic playbook
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: copy file
+      copy:
+        src: /root/imp
+        remote_src: yes
+        dest: /tmp
+        mode: '0777'
+        owner: 'rahul'
+        group: 'rahul'
+        backup: yes
+
+    - name: fetch log from remote system
+      fetch:
+       src: /root/a
+       dest: /tmp/
+       flat: yes
+
+    - name: create a file
+      file:
+        path: /tmp/abc
+        state: touch
+
+    - name: create a dir
+      file:
+        path: /tmp/india
+        state: directory
+
+    - name: exucute the script from remote server
+      shell: 'sh /tmp/xyz.sh'
