@@ -1,35 +1,66 @@
-- name: website hosting project
-- hosts: all
+- name: hosting website
+  hosts: web
+  become: yes
   tasks:
     - name: install httpd
       yum:
-        name: httpd
-        state: latest
+        name: httpd*
+        state: present
+      when: ansible_facts['os_family']  == "RedHat"
+      tags: install_httpd
 
     - name: start httpd service
       service:
         name: httpd
         state: started
+      when: ansible_facts['os_family'] == "RedHat"
+      tags: restart_httpd
 
-    - name: copy the source code    
+    - name: copy source code
       copy:
-        src: /root/code/
-        remote_src: yes
-        dest: /var/www/html
+        src: /root/code/index.html
+        dest: /var/www/html/index.html
+        owner: apache
+        group: apache
+        remote_src: no
+      when: ansible_facts['os_family'] == "RedHat"
+      notify: httpd_restart
 
-    - name: modify the file 
+    - name: change port number
       lineinfile:
         path: /etc/httpd/conf/httpd.conf
-        regexp: '^Listen '
-        insertafter: '^#Listen '
+        regexp: '^Listen'
         line: Listen 8080
-    - firewalld:
+      when: ansible_facts['os_family'] == "RedHat"
+      notify: httpd_restart
+
+    - name: install firewall pkg
+      yum:
+        name:
+          - python3-firewall
+          - firewalld
+        state: present
+
+
+    - name: add port number
+      firewalld:
         port: 8080/tcp
         permanent: yes
         state: enabled
-    - service:
-        name: httpd
-        state: restarted
+
+    - name: reload firewalled
+      service:
+        name: firewalld
+        state: started
+        enabled: yes
+
+  handlers:
+   - name: httpd_restart
+     service:
+       name: httpd
+       state: restarted
+
+
 
 
 #######################################################################################################################
