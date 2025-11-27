@@ -1,0 +1,61 @@
+---
+- hosts: localhost
+  become: true
+  tasks:
+
+    - name: Find log files in /var/log
+      find:
+        paths: /var/log
+        patterns: "*.log"
+        file_type: file
+        age: 0d
+        recurse: yes
+      register: log_files
+
+    - name: Sort logs and pick 20 oldest
+      set_fact:
+        old_logs: "{{ log_files.files | sort(attribute='mtime') | slice(0, 20) }}"
+
+    - name: Delete 20 oldest log files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_logs }}"
+
+
+##########################################################
+
+---
+- hosts: localhost
+  become: true
+  tasks:
+    - name: Create files with different permissions
+      file:
+        path: "{{ item.path }}"
+        state: touch
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "/tmp/file1.txt", mode: "0644" }
+        - { path: "/tmp/file2.txt", mode: "0755" }
+        - { path: "/tmp/file3.txt", mode: "0700" }
+
+
+#########################################################################
+
+Hostname: {{ ansible_hostname }}
+FQDN: {{ ansible_fqdn }}
+IP Address: {{ ansible_default_ipv4.address }}
+
+---
+- hosts: all
+  become: true
+  gather_facts: yes
+
+  tasks:
+    - name: Create system info file from template
+      template:
+        src: details.j2
+        dest: /tmp/system_details.txt
+
+
+######################################################################################
