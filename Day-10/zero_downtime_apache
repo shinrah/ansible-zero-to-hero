@@ -1,0 +1,36 @@
+--- 
+- hosts: webserver
+  become: yes
+  serial: 1
+  tasks: 
+    - name: install httpd
+      yum: 
+        name: httpd
+        state: present
+
+    - name: start and enabled service
+      service:  
+        name: httpd
+        state: started
+        enabled: yes
+
+    - name: copy template firewalled
+      template:
+        src: index.html.j2
+        dest: /var/www/html/index.html
+      notify: restart_httpd
+
+    - name: helth_check
+      uri:
+        url: "http://{{ inventory_hostname }}:8080"
+        status_code: 200
+      retries: 5
+      delay: 3
+      register: health_output
+      until: health_output.status == 200
+
+  handlers:
+    - name: restart_httpd
+      service:
+        name: httpd
+        state: restarted 
