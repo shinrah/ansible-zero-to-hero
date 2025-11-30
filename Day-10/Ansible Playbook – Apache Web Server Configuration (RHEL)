@@ -1,0 +1,58 @@
+---
+- hosts: webserver
+  become: true
+  vars:
+    httpd_port: 8080
+
+  pre_tasks:
+    - name: Ensure system is RHEL family
+      assert:
+        that: ansible_os_family == "RedHat"
+        fail_msg: "This playbook supports only RedHat family systems"
+        success_msg: "OS is supported"
+
+  tasks:
+    - name: Install httpd
+      yum:
+        name: httpd
+        state: present
+      tags: httpd_install
+
+    - name: Start and enable httpd
+      service:
+        name: httpd
+        state: started
+        enabled: true
+      tags: restart_httpd
+
+    - name: Configure Apache to use custom port
+      lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: "^Listen"
+        line: "Listen {{ httpd_port }}"
+      notify: reload_httpd
+
+    - name: Allow HTTP port in SELinux
+      seport:
+        ports: "{{ httpd_port }}"
+        proto: tcp
+        setype: http_port_t
+        state: present
+
+    - name: Configure firewalld
+      firewalld:
+        port: "{{ httpd_port }}/tcp"
+        permanent: true
+        state: enabled
+      notify: reload_firewalld
+
+  handlers:
+    - name: reload_httpd
+      service:
+        name: httpd
+        state: restarted
+
+    - name: reload_firewalld
+      service:
+        name: firewalld
+        state: reloaded
