@@ -9,6 +9,7 @@
         shell: /bin/bash
         create_home: yes
         password: "{{ 'mcsa@1234' | password_hash('sha512') }}"
+
     - name: create a group
       group:
         name: developers
@@ -20,19 +21,27 @@
         groups: developers
         append: yes
 
-    - name: creaet a directory
+    - name: create a directory
       file:
-         path: /tmp/rahul_dir
-         state: directory
-         owner: rahul
-         group: developers
-         mode: '0755'
+        path: /tmp/rahul_dir
+        state: directory
+        owner: rahul
+        group: developers
+        mode: '0755'
 
-    - name: set password policy for rahul user
-      chage: 
-        name: rahul
-        password_expire_max: 30
-        password_expire_min: 5
-        password_warn_age: 7
-        inactive: 10
-        expirydate: 2025-10-31
+    # -------- PASSWORD POLICY -------- #
+
+    - name: Set password expire max days
+      command: chage -M 30 rahul
+
+    - name: Set password expire min days
+      command: chage -m 5 rahul
+
+    - name: Set password warning age
+      command: chage -W 7 rahul
+
+    - name: Set inactive days
+      command: chage -I 10 rahul
+
+    - name: Set account expiry date
+      command: chage -E 2025-10-31 rahul
