@@ -1,0 +1,38 @@
+---
+- hosts: localhost
+  become: yes
+  tasks:
+    - name: create a user
+      user:
+        name: rahul
+        state: present
+        shell: /bin/bash
+        create_home: yes
+        password: "{{ 'mcsa@1234' | password_hash('sha512') }}"
+    - name: create a group
+      group:
+        name: developers
+        state: present
+
+    - name: add user to group
+      user:
+        name: rahul
+        groups: developers
+        append: yes
+
+    - name: creaet a directory
+      file:
+         path: /tmp/rahul_dir
+         state: directory
+         owner: rahul
+         group: developers
+         mode: '0755'
+
+    - name: set password policy for rahul user
+      chage: 
+        name: rahul
+        password_expire_max: 30
+        password_expire_min: 5
+        password_warn_age: 7
+        inactive: 10
+        expirydate: 2025-10-31
