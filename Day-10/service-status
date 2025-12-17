@@ -1,0 +1,16 @@
+- name: gather service facts
+  ansible.builtin.service_facts:
+  
+- name: Report service status
+  debug:
+    msg: >-
+      {{ item }}:
+      installed={{ 'yes' if item in ansible_facts.services else 'no' }},
+      running={{ 'yes'
+      if item in ansible_facts.services
+      and ansible_facts.services[item].state == 'running'
+      else 'no' }}
+  loop:
+    - sshd
+    - docker
+    - firewalld
